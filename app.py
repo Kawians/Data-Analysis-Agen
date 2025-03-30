@@ -11,7 +11,7 @@ import re
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel(model_name="models/gemini-2.0-flash")
 
-st.set_page_config(page_title="AI Data Analysis Assistant", layout="wide")
+st.set_page_config(page_title="Kavian's AI Data Analysis Assistant", layout="wide")
 st.title("🧠 AI Data Analysis Assistant")
 
 uploaded_file = st.file_uploader("Upload a CSV or Excel file", type=["csv", "xlsx"])
