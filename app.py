@@ -89,8 +89,8 @@ Respond only with valid JSON. No explanation.
                 cleaned = re.sub(r"^```json|```$", "", raw, flags=re.IGNORECASE).strip()
                 chart_config = json.loads(cleaned)
 
-                st.markdown("### 🔧 Gemini's Visualization Plan")
-                st.json(chart_config)
+                # st.markdown("### 🔧 Gemini's Visualization Plan")
+                # st.json(chart_config)
 
                 chart_type = chart_config.get("chart_type")
                 x = chart_config.get("x")
