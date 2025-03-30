@@ -4,8 +4,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import google.generativeai as genai
 import os
-import io
 import json
+import re
 
 # Configure Gemini API
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -28,45 +28,53 @@ if uploaded_file:
 
     st.markdown("### 💬 Ask a question about your data to generate a chart")
 
-    question = st.text_input("Example: What companies were there? OR Show distribution of age by department")
+    question = st.text_input("Example: What companies are in the dataset? OR Show average salary by department")
 
     if question:
         with st.spinner("🔍 Interpreting your question..."):
-            # Build smart prompt
             prompt = f"""
-You are a data visualization assistant.
+You are a smart data visualization assistant.
 
 Given this dataset sample:
 {df.head(10).to_csv(index=False)}
 
 And these column names: {', '.join(df.columns)}
 
-Interpret the user's question and return a JSON object that specifies:
-1. chart_type: one of ['bar', 'pie', 'hist', 'box', 'scatter']
-2. x: column to plot on X-axis
-3. y: column to plot on Y-axis (null if not needed)
-4. operation: optional (e.g., 'count', 'mean', 'sum', or null)
-5. filter: optional (e.g., "Gender == 'Female'" or null)
+Interpret the user's question and return a JSON object that includes:
+- chart_type: one of ['bar', 'pie', 'hist', 'box', 'scatter']
+- x: column for X-axis
+- y: column for Y-axis (or null)
+- operation: one of ['count', 'sum', 'mean', null]
+- filter: optional filter expression, or null
 
 User's question: {question}
 
-Respond only with a JSON object. No explanation.
+Respond only with valid JSON. No explanation.
             """
 
             try:
                 response = model.generate_content(prompt)
-                chart_config = json.loads(response.text.strip())
+
+                # Show raw response for debugging
+                raw = response.text.strip()
+                st.markdown("### 🧠 Gemini Raw Response")
+                st.code(raw)
+
+                # Clean the response to extract JSON
+                cleaned = re.sub(r"^```json|```$", "", raw, flags=re.IGNORECASE).strip()
+                chart_config = json.loads(cleaned)
 
                 st.markdown("### 🔧 Gemini's Visualization Plan")
                 st.json(chart_config)
 
+                # Extract config values
                 chart_type = chart_config.get("chart_type")
                 x = chart_config.get("x")
                 y = chart_config.get("y")
                 operation = chart_config.get("operation")
                 filter_expr = chart_config.get("filter")
 
-                # Apply filtering if specified
+                # Apply filter if any
                 if filter_expr:
                     try:
                         df_filtered = df.query(filter_expr)
@@ -79,7 +87,7 @@ Respond only with a JSON object. No explanation.
                 st.markdown("### 📊 Generated Chart")
                 plt.figure(figsize=(10, 5))
 
-                # Generate chart based on intent
+                # Plot based on chart type
                 if chart_type == "bar":
                     if operation == "count":
                         sns.countplot(data=df_filtered, x=x)
@@ -107,10 +115,12 @@ Respond only with a JSON object. No explanation.
                     sns.scatterplot(data=df_filtered, x=x, y=y)
 
                 else:
-                    st.warning("🤖 Model returned unknown chart type.")
+                    st.warning("🤖 Gemini returned an unknown chart type.")
 
                 st.pyplot(plt.gcf())
                 plt.clf()
 
+            except json.JSONDecodeError:
+                st.error("❌ Gemini did not return valid JSON.")
             except Exception as e:
                 st.error(f"❌ Something went wrong: {e}")
