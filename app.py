@@ -42,7 +42,8 @@ Columns: {', '.join(df.columns)}
 
 The user asked: {question}
 
-Provide a short, clear written summary answering their question. Be accurate and helpful.
+Provide a short, clear written summary answering their question. It shouldn't be regarding how you are going to generate the visualization.
+You should answer their question based on the data. Be accurate and helpful.
             """
             try:
                 insight_response = model.generate_content(insight_prompt)
