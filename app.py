@@ -32,13 +32,29 @@ if uploaded_file:
     if question:
         # -------- 1. Written Answer --------
         with st.spinner("🧠 Generating written insight..."):
+
+            # Schema: column names + sample values
+            schema_hint = json.dumps([
+                {
+                    "name": col,
+                    "sample_values": df[col].dropna().astype(str).unique()[:3].tolist()
+                }
+                for col in df.columns
+            ], indent=2)
+
             insight_prompt = f"""
 You are a helpful data analyst.
 
-Given this dataset:
-{df.to_csv(index=False)}
+The dataset has {df.shape[0]} rows and {df.shape[1]} columns.
 
-Columns: {', '.join(df.columns)}
+Here is a preview of the first 10 rows:
+{df.head(10).to_csv(index=False)}
+
+Here are summary statistics:
+{df.describe(include='all').to_string()}
+
+Here is the list of columns and a few example values:
+{schema_hint}
 
 The user asked: {question}
 
