@@ -59,7 +59,8 @@ You are a smart data visualization assistant.
 Given this dataset sample:
 {df.head(10).to_csv(index=False)}
 
-And these column names: {', '.join(df.columns)}
+And here is a list of column names from the dataset:
+{json.dumps([{ 'name': col, 'sample_values': df[col].dropna().astype(str).unique()[:3].tolist() } for col in df.columns], indent=2)}
 
 Interpret the user's question and return a JSON object that includes:
 - chart_type: one of ['bar', 'pie', 'hist', 'box', 'scatter']
