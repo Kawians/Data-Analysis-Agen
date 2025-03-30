@@ -162,12 +162,12 @@ Respond only with valid JSON. No explanation.
                     sns.scatterplot(data=df_filtered, x=x, y=y)
 
                 else:
-                    st.warning("🤖 Gemini returned an unknown chart type.")
+                    st.warning("🤖 We don't have proper visualization for you.")
 
                 st.pyplot(plt.gcf())
                 plt.clf()
 
             except json.JSONDecodeError:
-                st.error("❌ Gemini did not return valid JSON.")
+                st.error("❌ I couldn't generate a valid JSON.")
             except Exception as e:
                 st.error(f"❌ Something went wrong: {e}")
