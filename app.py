@@ -108,23 +108,31 @@ Respond only with valid JSON. No explanation.
 
                 # -------- 4. Generate visualization --------
                 st.markdown("### 📊 Generated Chart")
-                plt.figure(figsize=(10, 5))
+                plt.figure(figsize=(12, 6))
+
+                # Auto-limit categories to top N for readability
+                TOP_N = 10
 
                 if chart_type == "bar":
                     if operation == "count":
-                        sns.countplot(data=df_filtered, x=x)
+                        value_counts = df_filtered[x].value_counts().nlargest(TOP_N)
+                        sns.barplot(x=value_counts.index, y=value_counts.values)
+                        plt.ylabel("Count")
+                        plt.xticks(rotation=45, ha='right')
                     elif operation in ["mean", "sum"] and y:
-                        grouped = df_filtered.groupby(x)[y].agg(operation).reset_index()
+                        grouped = df_filtered.groupby(x)[y].agg(operation).nlargest(TOP_N).reset_index()
                         sns.barplot(data=grouped, x=x, y=y)
+                        plt.xticks(rotation=45, ha='right')
                     else:
                         sns.barplot(data=df_filtered, x=x, y=y)
+                        plt.xticks(rotation=45, ha='right')
 
                 elif chart_type == "pie":
                     if operation == "count":
-                        pie_data = df_filtered[x].value_counts()
+                        pie_data = df_filtered[x].value_counts().nlargest(TOP_N)
                     else:
-                        pie_data = df_filtered.groupby(x)[y].agg(operation)
-                    plt.pie(pie_data, labels=pie_data.index, autopct='%1.1f%%')
+                        pie_data = df_filtered.groupby(x)[y].agg(operation).nlargest(TOP_N)
+                    plt.pie(pie_data, labels=pie_data.index, autopct='%1.1f%%', textprops={'fontsize': 8})
                     plt.axis('equal')
 
                 elif chart_type == "hist":
@@ -132,6 +140,7 @@ Respond only with valid JSON. No explanation.
 
                 elif chart_type == "box":
                     sns.boxplot(data=df_filtered, x=x, y=y)
+                    plt.xticks(rotation=45, ha='right')
 
                 elif chart_type == "scatter":
                     sns.scatterplot(data=df_filtered, x=x, y=y)
@@ -141,8 +150,3 @@ Respond only with valid JSON. No explanation.
 
                 st.pyplot(plt.gcf())
                 plt.clf()
-
-            except json.JSONDecodeError:
-                st.error("❌ Gemini did not return valid JSON.")
-            except Exception as e:
-                st.error(f"❌ Something went wrong: {e}")
