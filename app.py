@@ -5,7 +5,7 @@ import google.generativeai as genai
 # Configure Gemini
 import os
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel(model_name="models/gemini-pro")
 
 # Streamlit App
 st.title("🧠 AI Data Analysis Assistant")
