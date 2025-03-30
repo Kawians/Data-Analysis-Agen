@@ -3,7 +3,8 @@ import pandas as pd
 import google.generativeai as genai
 
 # Configure Gemini
-genai.configure(api_key="YOUR_API_KEY")
+import os
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-pro")
 
 # Streamlit App
