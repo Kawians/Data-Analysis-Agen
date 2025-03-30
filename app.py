@@ -26,13 +26,34 @@ if uploaded_file:
     st.subheader("📄 Preview of Data")
     st.dataframe(df.head())
 
-    st.markdown("### 💬 Ask a question about your data to generate a chart")
-
+    st.markdown("### 💬 Ask a question about your data to get insights and visualizations")
     question = st.text_input("Example: What companies are in the dataset? OR Show average salary by department")
 
     if question:
-        with st.spinner("🔍 Interpreting your question..."):
-            prompt = f"""
+        # -------- 1. Generate written insight --------
+        with st.spinner("🧠 Generating written insight..."):
+            insight_prompt = f"""
+You are a helpful data analyst.
+
+Given this dataset:
+{df.head(10).to_csv(index=False)}
+
+Columns: {', '.join(df.columns)}
+
+The user asked: {question}
+
+Provide a short, clear written summary answering their question. Be accurate and helpful.
+            """
+            try:
+                insight_response = model.generate_content(insight_prompt)
+                st.markdown("### ✍️ Insight")
+                st.write(insight_response.text.strip())
+            except Exception as e:
+                st.error(f"❌ Failed to generate written answer: {e}")
+
+        # -------- 2. Generate chart config --------
+        with st.spinner("📊 Planning the visualization..."):
+            vis_prompt = f"""
 You are a smart data visualization assistant.
 
 Given this dataset sample:
@@ -51,43 +72,43 @@ User's question: {question}
 
 Respond only with valid JSON. No explanation.
             """
-
             try:
-                response = model.generate_content(prompt)
+                response = model.generate_content(vis_prompt)
 
-                # Show raw response for debugging
+                # Raw Gemini response
                 raw = response.text.strip()
                 st.markdown("### 🧠 Gemini Raw Response")
                 st.code(raw)
 
-                # Clean the response to extract JSON
+                # Clean markdown code block if needed
                 cleaned = re.sub(r"^```json|```$", "", raw, flags=re.IGNORECASE).strip()
                 chart_config = json.loads(cleaned)
 
+                # Show parsed config
                 st.markdown("### 🔧 Gemini's Visualization Plan")
                 st.json(chart_config)
 
-                # Extract config values
+                # Extract fields
                 chart_type = chart_config.get("chart_type")
                 x = chart_config.get("x")
                 y = chart_config.get("y")
                 operation = chart_config.get("operation")
                 filter_expr = chart_config.get("filter")
 
-                # Apply filter if any
+                # -------- 3. Filter data --------
                 if filter_expr:
                     try:
                         df_filtered = df.query(filter_expr)
                     except Exception:
-                        st.warning("⚠️ Invalid filter expression. Showing full dataset.")
+                        st.warning("⚠️ Invalid filter expression. Using full dataset.")
                         df_filtered = df
                 else:
                     df_filtered = df
 
+                # -------- 4. Generate visualization --------
                 st.markdown("### 📊 Generated Chart")
                 plt.figure(figsize=(10, 5))
 
-                # Plot based on chart type
                 if chart_type == "bar":
                     if operation == "count":
                         sns.countplot(data=df_filtered, x=x)
