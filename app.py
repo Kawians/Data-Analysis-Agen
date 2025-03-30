@@ -36,7 +36,7 @@ if uploaded_file:
 You are a helpful data analyst.
 
 Given this dataset:
-{df.head(10).to_csv(index=False)}
+{df.to_csv(index=False)}
 
 Columns: {', '.join(df.columns)}
 
