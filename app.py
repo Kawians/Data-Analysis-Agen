@@ -45,6 +45,11 @@ if uploaded_file:
             insight_prompt = f"""
 You are a helpful data analyst.
 
+Given this dataset:
+{df.head(10).to_csv(index=False)}
+
+Columns: {', '.join(df.columns)}
+
 The dataset has {df.shape[0]} rows and {df.shape[1]} columns.
 
 Here is a preview of the first 10 rows:
