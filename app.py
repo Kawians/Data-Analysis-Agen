@@ -30,7 +30,7 @@ if uploaded_file:
     question = st.text_input("Example: What companies are in the dataset? OR Show average salary by department")
 
     if question:
-        # -------- 1. Generate written insight --------
+        # -------- 1. Written Answer --------
         with st.spinner("🧠 Generating written insight..."):
             insight_prompt = f"""
 You are a helpful data analyst.
@@ -51,66 +51,65 @@ Provide a short, clear written summary answering their question. Be accurate and
             except Exception as e:
                 st.error(f"❌ Failed to generate written answer: {e}")
 
-        # -------- 2. Generate chart config --------
+        # -------- 2. Chart Planning --------
         with st.spinner("📊 Planning the visualization..."):
+            schema_hint = json.dumps([
+                {
+                    "name": col,
+                    "sample_values": df[col].dropna().astype(str).unique()[:3].tolist()
+                }
+                for col in df.columns
+            ], indent=2)
+
             vis_prompt = f"""
 You are a smart data visualization assistant.
 
 Given this dataset sample:
 {df.head(10).to_csv(index=False)}
 
-And here is a list of column names from the dataset:
-{json.dumps([{ 'name': col, 'sample_values': df[col].dropna().astype(str).unique()[:3].tolist() } for col in df.columns], indent=2)}
+Here is the column schema (column names + sample values):
+{schema_hint}
 
-Interpret the user's question and return a JSON object that includes:
+Interpret the user's question and return a JSON object with:
 - chart_type: one of ['bar', 'pie', 'hist', 'box', 'scatter']
-- x: column for X-axis
-- y: column for Y-axis (or null)
-- operation: one of ['count', 'sum', 'mean', null]
-- filter: optional filter expression, or null
+- x: column name for X-axis
+- y: column name for Y-axis (or null)
+- operation: one of ['count', 'mean', 'sum', null]
+- filter: optional string like "Gender == 'Female'" or null
 
 User's question: {question}
 
 Respond only with valid JSON. No explanation.
             """
+
             try:
                 response = model.generate_content(vis_prompt)
-
-                # Raw Gemini response
                 raw = response.text.strip()
-                st.markdown("### 🧠 Gemini Raw Response")
-                st.code(raw)
-
-                # Clean markdown code block if needed
                 cleaned = re.sub(r"^```json|```$", "", raw, flags=re.IGNORECASE).strip()
                 chart_config = json.loads(cleaned)
 
-                # Show parsed config
                 st.markdown("### 🔧 Gemini's Visualization Plan")
                 st.json(chart_config)
 
-                # Extract fields
                 chart_type = chart_config.get("chart_type")
                 x = chart_config.get("x")
                 y = chart_config.get("y")
                 operation = chart_config.get("operation")
                 filter_expr = chart_config.get("filter")
 
-                # -------- 3. Filter data --------
+                # -------- 3. Filter Data --------
                 if filter_expr:
                     try:
                         df_filtered = df.query(filter_expr)
                     except Exception:
-                        st.warning("⚠️ Invalid filter expression. Using full dataset.")
+                        st.warning("⚠️ Invalid filter expression. Showing full dataset.")
                         df_filtered = df
                 else:
                     df_filtered = df
 
-                # -------- 4. Generate visualization --------
+                # -------- 4. Generate Visualization --------
                 st.markdown("### 📊 Generated Chart")
                 plt.figure(figsize=(12, 6))
-
-                # Auto-limit categories to top N for readability
                 TOP_N = 10
 
                 if chart_type == "bar":
@@ -150,3 +149,8 @@ Respond only with valid JSON. No explanation.
 
                 st.pyplot(plt.gcf())
                 plt.clf()
+
+            except json.JSONDecodeError:
+                st.error("❌ Gemini did not return valid JSON.")
+            except Exception as e:
+                st.error(f"❌ Something went wrong: {e}")
